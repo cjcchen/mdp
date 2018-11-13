@@ -136,7 +136,7 @@ def train():
     init()
 
 
-    while epoch < 100:
+    while epoch < 1:
         cur_q,cur_v=get_init_array()
         new_q,new_v = run_step(last_q,last_v,cur_q,cur_v)
         last_q=copy.copy(new_q)

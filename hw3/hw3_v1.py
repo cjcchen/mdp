@@ -191,9 +191,9 @@ if __name__ == '__main__':
         for i in xrange(grid_size):
             for j in xrange(grid_size):
                 print ("i = %d j = %d c = %d" %(i,j,c),v[i][j][c])
-                #for d in xrange(4):
-                #    print ("i = %d j = %d c = %d d= %d" %(i,j,c,d),q[i][j][c][d])
-                #print ("i = %d j = %d dir = %d" %(i,j,np.argmax(q[i][j][c])))
+                for d in xrange(4):
+                    print ("i = %d j = %d c = %d d= %d" %(i,j,c,d),q[i][j][c][d])
+                print ("i = %d j = %d dir = %d" %(i,j,np.argmax(q[i][j][c])))
 
     for i in xrange(car_num):
         print ("score:",v[car_start_list[i][0]][car_start_list[i][1]][i])
