@@ -52,39 +52,19 @@ def init():
     for i in xrange(grid_size):
         for j in xrange(grid_size):
             for c in xrange(car_num):
-                for d in xrange(4):
-                    
-                    new_i = i+dir_map[d][0]
-                    new_j = j+dir_map[d][1]
                     reward = -1 
-                    if not is_valid(new_i,new_j):
-                        new_i = i
-                        new_j = j
-                        reward=0
-
-                    if((new_i,new_j) == car_end_list[c]):
+                    if((i,j) == car_end_list[c]):
                         reward += 100
-                    if((new_i,new_j) in obs_list):
+                    if((i,j) in obs_list):
                         reward -= 100
-
-                    reward_v[i][j][c][d] = reward
+                    reward_v[i][j][c] = reward
 
 def is_valid(x,y):
     return x>=0 and x<grid_size and y >=0 and y <grid_size
 
 def get_new_v(v,cur_i,cur_j,cur_car,cur_dir,gama=0.9):
     if (cur_i,cur_j) == car_end_list[cur_car]:
-        #return 99
-        #return gama*100
-        #return gama*v[cur_i][cur_j][cur_car]
-        return 0
-
-    #if (cur_i,cur_j) in obs_list:
-        #return 0
-        #return gama*v[cur_i][cur_j][cur_car]
-    #reward=-1
-    #if (cur_i,cur_j) in obs_list:
-    #    reward-=100
+        return v[cur_i][cur_j][cur_car]
 
     total_reward = 0
     for want_dir in xrange(4): 
@@ -96,69 +76,53 @@ def get_new_v(v,cur_i,cur_j,cur_car,cur_dir,gama=0.9):
         if not is_valid(new_i,new_j):
             new_i = cur_i
             new_j = cur_j
-        #print("reward_v:",reward_v[cur_i][cur_j][cur_car][want_dir])
-        total_reward += p*(reward_v[cur_i][cur_j][cur_car][want_dir]+gama*v[new_i][new_j][cur_car])
-        '''
-        if is_valid(new_i,new_j):
-            total_reward+=p*(v[new_i][new_j][cur_car])
-            print ("total :",cur_i,cur_j,want_dir, p, cur_dir, total_reward, v[new_i][new_j][cur_car])
-        else:
-            total_reward+=p*v[cur_i][cur_j][cur_car]
-            #total_reward+=p*(reward+gama*v[cur_i][cur_j][cur_car])
-
-            print ("total :",cur_i,cur_j,want_dir, p, cur_dir, total_reward, v[cur_i][cur_j][cur_car])
-        '''
-        #print ("total :",cur_i,cur_j,want_dir, p, cur_dir, total_reward, reward_v[cur_i][cur_j][cur_car][want_dir], v[new_i][new_j][cur_car])
-    return total_reward
+        total_reward += p*v[new_i][new_j][cur_car]
+        #print "cur_i:",cur_i,"cur_j:",cur_j,"cur_dir:",cur_dir,"want dir:",want_dir,"v:",v[new_i][new_j][cur_car],"reward:",total_reward
+    return reward_v[cur_i][cur_j][cur_car]+total_reward
     #return gama*total_reward+reward_v[cur_i][cur_j][cur_car]
 
-def run_step(q,v,new_q,new_v):
+def run_step(q,v,new_q,new_v,gama=1):
 
     for i in xrange(grid_size):
         for j in xrange(grid_size):
             for c in xrange(car_num):
                 new_v[i][j][c]=None
                 for d in xrange(4):
-                    new_q[i][j][c][d] = get_new_v(v, i,j,c,d)
+                    new_q[i][j][c][d] = get_new_v(v, i,j,c,d,gama)
                     if(not new_v[i][j][c] or new_q[i][j][c][d]>new_v[i][j][c]):
                         new_v[i][j][c] = new_q[i][j][c][d]
+                #print("reward:",reward_v[i][j][c], "utility:",new_v[i][j][c])
+                #new_v[i][j][c] = reward_v[i][j][c] + gama*new_v[i][j][c]
     return new_q,new_v
 
 def train():
-    epoch = 0
     last_q,last_v=get_init_array()
-    global reward_v
-    reward_v=copy.copy(last_q)
 
-    cur_q=last_q
-    cur_v=last_v
+    global reward_v
+    reward_v=copy.copy(last_v)
 
     init()
+    last_v=copy.copy(reward_v)
 
-
-    while epoch < 100:
+    epoch = 0
+    while epoch < 1:
         cur_q,cur_v=get_init_array()
         new_q,new_v = run_step(last_q,last_v,cur_q,cur_v)
-        last_q=copy.copy(new_q)
-        last_v=copy.copy(new_v)
+        last_q=new_q
+        last_v=new_v
         epoch +=1
-        
     return cur_q,cur_v
 
 def get_policy(pos,cur_car,q):
     #return np.argmax(q[pos[0]][pos[1]][cur_car])
-
     max_score = None
     policy = None
     for d in [1,3,2,0]:
-        #score = get_new_v(v,pos[0],pos[1],cur_car,d,gama=1)
-        score = q[pos[0]][pos[1]][cur_car][d]
-
-        if not max_score or score > max_score:
+        if not max_score or q[pos[0]][pos[1]][cur_car][d] > max_score:
             #if( max_score and max_score == q[pos[0]][pos[1]][cur_car][d]))):
             #    print ("get policy:",pos, cur_car, "d:",d, "val:",q[pos[0]][pos[1]][cur_car][d], "max score:",max_score)
             #    continue
-            max_score = score
+            max_score = q[pos[0]][pos[1]][cur_car][d]
             policy = d
     return policy
 
@@ -178,7 +142,7 @@ def go(pos, move, cur_car):
         new_i = cur_i
         new_j = cur_j
     #print ("pos:",pos,"go:",(new_i,new_j), "reward:",reward_v[cur_i][cur_j][cur_car][move])
-    return (new_i,new_j), reward_v[cur_i][cur_j][cur_car][move]
+    return (new_i,new_j), reward_v[cur_i][cur_j][cur_car]+reward
 
 def get_score(q):
 
@@ -217,22 +181,19 @@ if __name__ == '__main__':
 
     q,v = train()
 
-    '''
     print ("reward:")
     for c in xrange(car_num):
         for i in xrange(grid_size):
             for j in xrange(grid_size):
-                for d in xrange(4):
-                    print ("i = %d j = %d c = %d d= %d" %(i,j,c,d),reward_v[i][j][c][d])
-    '''
+                print ("i = %d j = %d c = %d" %(i,j,c),reward_v[i][j][c])
 
     for c in xrange(car_num):
         for i in xrange(grid_size):
             for j in xrange(grid_size):
                 print ("i = %d j = %d c = %d" %(i,j,c),v[i][j][c])
-                for d in xrange(4):
-                    print ("i = %d j = %d c = %d d= %d" %(i,j,c,d),q[i][j][c][d])
-                print ("i = %d j = %d dir = %d" %(i,j,np.argmax(q[i][j][c])))
+                #for d in xrange(4):
+                #    print ("i = %d j = %d c = %d d= %d" %(i,j,c,d),q[i][j][c][d])
+                #print ("i = %d j = %d dir = %d" %(i,j,np.argmax(q[i][j][c])))
 
     for i in xrange(car_num):
         print ("score:",v[car_start_list[i][0]][car_start_list[i][1]][i])
