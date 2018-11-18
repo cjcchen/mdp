@@ -106,7 +106,6 @@ def train():
     cur_q=[]
     cur_v=[]
     for i in xrange(car_num):
-        print ("train:",i)
         v,q=train_one(i)
         cur_v.append(v)
         cur_q.append(q)
@@ -156,15 +155,13 @@ def simulate(q,v):
     return avg_score
 
 if __name__ == '__main__':
-    file_name=sys.argv[1]
-    #file_name="input.txt"
+    file_name="input.txt"
     get_input(file_name)
     
     q,v = train()
     avg_scores=simulate(q,v)             
     with open('output.txt','w') as f:
         for score in avg_scores: 
-            print int(np.floor(score))
             f.write("%d\n" %np.floor(score))
     f.close()
 
